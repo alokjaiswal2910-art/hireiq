@@ -1,6 +1,6 @@
 "use server";
 
-import { callGemini } from '@/lib/gemini/client';
+import { callAI } from '@/lib/ai/client';
 import { extractTextFromBuffer } from '@/lib/resume/parser';
 import { applyToJob, saveResumeAnalysis } from '@/app/actions/applications';
 import type { ActionResponse, ResumeAnalysis } from '@/lib/types';
@@ -88,7 +88,7 @@ Scoring: 70+ = strong, 40-69 = moderate, below 40 = weak.
 `;
 
   try {
-    const result = await callGemini<ResumeAnalysis>(prompt, { temperature: 0.3, maxOutputTokens: 2048 });
+    const result = await callAI<ResumeAnalysis>(prompt, { temperature: 0.3, maxOutputTokens: 2048 });
 
     if (
       typeof result.match_score !== 'number' ||
@@ -98,7 +98,7 @@ Scoring: 70+ = strong, 40-69 = moderate, below 40 = weak.
       typeof result.feedback !== 'string' ||
       !Array.isArray(result.suggestions)
     ) {
-      return { data: null, error: 'Gemini returned an unexpected resume analysis shape' };
+      return { data: null, error: 'AI returned an unexpected resume analysis shape' };
     }
 
     return { data: result, error: null };

@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from '@/lib/supabase/server';
-import { callGemini } from '@/lib/gemini/client';
+import { callAI } from '@/lib/ai/client';
 import type { ActionResponse, Interview, InterviewQA, ScoreData, CandidateRanking } from '@/lib/types';
 
 // ─── Generate First Question ──────────────────────────────────────────────────
@@ -17,8 +17,9 @@ JOB DESCRIPTION: ${jobDescription.slice(0, 600)}
 REQUIRED SKILLS: ${requiredSkills.join(', ')}
 
 Generate the FIRST interview question. Start with a medium difficulty conceptual question.
+Keep the question to 1-3 sentences so it stays concise.
 
-Return ONLY a valid JSON object:
+Return ONLY a valid JSON object with no trailing commas:
 {
   "question": "<the interview question>",
   "skill_tested": "<which skill from the required list this tests>",
@@ -27,8 +28,8 @@ Return ONLY a valid JSON object:
 `;
 
   try {
-    const result = await callGemini<{ question: string; skill_tested: string; difficulty_level: number }>(
-      prompt, { temperature: 0.8, maxOutputTokens: 512 }
+    const result = await callAI<{ question: string; skill_tested: string; difficulty_level: number }>(
+      prompt, { temperature: 0.8, maxOutputTokens: 1024 }
     );
     return { data: result, error: null };
   } catch (err) {
@@ -89,10 +90,10 @@ Return ONLY valid JSON:
 `;
 
   try {
-    const result = await callGemini<ScoreData>(prompt, { temperature: 0.3, maxOutputTokens: 1024 });
+    const result = await callAI<ScoreData>(prompt, { temperature: 0.3, maxOutputTokens: 1024 });
 
     if (typeof result.score !== 'number' || typeof result.feedback !== 'string') {
-      return { data: null, error: 'Gemini returned an unexpected score shape' };
+      return { data: null, error: 'AI returned an unexpected score shape' };
     }
 
     return { data: result, error: null };

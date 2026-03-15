@@ -51,6 +51,7 @@ export function InterviewRoom({
   const [currentDifficulty, setCurrentDifficulty] = useState(5);
   
   const [answer, setAnswer] = useState('');
+  const [lastSubmittedAnswer, setLastSubmittedAnswer] = useState('');
   const [lastScore, setLastScore] = useState<ScoreData | null>(null);
   const [previousScores, setPreviousScores] = useState<number[]>([]);
   const [errorMsg, setErrorMsg] = useState("");
@@ -86,8 +87,9 @@ export function InterviewRoom({
     init();
   }, [applicationId, jobId, jobTitle, jobDescription, requiredSkills, onProgressUpdate]);
 
-  const handleSubmit = async () => {
-    if (answer.trim().length < 20) return;
+  const handleSubmit = async (overrideAnswer?: string) => {
+    const textToSubmit = overrideAnswer !== undefined ? overrideAnswer : answer;
+    if (textToSubmit.trim().length < 10 && !overrideAnswer) return;
     if (!interviewId) return;
 
     setPhase('submitting');
@@ -100,7 +102,7 @@ export function InterviewRoom({
         requiredSkills,
         currentQuestion,
         currentSkill,
-        answer,
+        textToSubmit.trim() || "Candidate skipped this question.",
         questionNumber,
         totalQuestions,
         previousScores
@@ -112,17 +114,19 @@ export function InterviewRoom({
       setLastScore(sd);
       setPreviousScores(prev => [...prev, sd.score]);
 
-      // 3. Save current QA to database
+      // 3. Save current QA to database (use the text we actually submitted)
+      const submittedText = textToSubmit.trim() || "Candidate skipped this question.";
       await saveInterviewQA(
         interviewId,
         questionNumber,
         currentQuestion,
         currentSkill,
         currentDifficulty,
-        answer,
+        submittedText,
         sd
       );
 
+      setLastSubmittedAnswer(submittedText);
       setPhase('scored');
     } catch (err: any) {
       setErrorMsg(err.message || "Submission failed");
@@ -239,7 +243,8 @@ export function InterviewRoom({
             <AnswerInput 
               value={answer}
               onChange={setAnswer}
-              onSubmit={handleSubmit}
+              onSubmit={() => handleSubmit()}
+              onSkip={() => handleSubmit("Candidate skipped this question.")}
               disabled={false}
             />
           </motion.div>
@@ -254,7 +259,7 @@ export function InterviewRoom({
             className="flex flex-col gap-8"
           >
             <ScoreReveal scoreData={lastScore} />
-            <IdealAnswerComparison scoreData={lastScore} userAnswer={answer} />
+            <IdealAnswerComparison scoreData={lastScore} userAnswer={lastSubmittedAnswer} />
             
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
@@ -266,6 +271,9 @@ export function InterviewRoom({
               <p className="text-sm text-slate-300 leading-relaxed font-dm-sans">
                 {lastScore.feedback}
               </p>
+              {lastSubmittedAnswer === "Candidate skipped this question." && (
+                <p className="text-xs text-slate-500 italic mt-2">You skipped this question.</p>
+              )}
             </motion.div>
 
             <motion.div 
